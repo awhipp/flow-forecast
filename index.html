@@ -1,0 +1,62 @@
+<!DOCTYPE html><html lang="en">
+    <head>
+      <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Period Probability Calculator</title>
+            <style>
+                body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
+                    label, input, button { display: block; margin: 10px 0; }
+                        button { padding: 10px; cursor: pointer; }
+                            .result { margin-top: 20px; font-weight: bold; }
+                              </style>
+                              </head>
+                              <body>
+                                <h1>Period Probability Calculator</h1>
+                                  <label for="lastPeriod">Last Period Start Date:</label>
+                                    <input type="date" id="lastPeriod"><label for="cycleLength">Average Cycle Length (days):</label> <input type="number" id="cycleLength" value="28">
+
+                                    <label for="periodLength">Average Period Length (days):</label> <input type="number" id="periodLength" value="5">
+
+                                    <label for="futureDate">Date to Check:</label> <input type="date" id="futureDate">
+
+                                    <button onclick="calculateProbability()">Calculate Probability</button>
+
+                                      <div class="result" id="result"></div>  <script>
+                                          function calculateProbability() {
+                                                const lastPeriod = new Date(document.getElementById('lastPeriod').value);
+                                                      const cycleLength = parseInt(document.getElementById('cycleLength').value);
+                                                            const periodLength = parseInt(document.getElementById('periodLength').value);
+                                                                  const futureDate = new Date(document.getElementById('futureDate').value);
+
+                                                                        if (!lastPeriod || !futureDate || isNaN(cycleLength) || isNaN(periodLength)) {
+                                                                                document.getElementById('result').textContent = "Please fill all inputs correctly.";
+                                                                                        return;
+                                                                                              }
+
+                                                                                                    // Monte Carlo simulation parameters
+                                                                                                          const simulations = 10000;
+                                                                                                                let count = 0;
+
+                                                                                                                      for (let i = 0; i < simulations; i++) {
+                                                                                                                              const cycle = cycleLength + (Math.random() * 4 - 2); // +/- 2 days variation
+                                                                                                                                      const period = periodLength + (Math.random() * 2 - 1); // +/- 1 day variation
+                                                                                                                                              let nextPeriod = new Date(lastPeriod);
+
+                                                                                                                                                      while (nextPeriod < futureDate) {
+                                                                                                                                                                nextPeriod.setDate(nextPeriod.getDate() + cycle);
+                                                                                                                                                                        }
+
+                                                                                                                                                                                const periodStart = new Date(nextPeriod);
+                                                                                                                                                                                        const periodEnd = new Date(nextPeriod);
+                                                                                                                                                                                                periodEnd.setDate(periodStart.getDate() + period);
+
+                                                                                                                                                                                                        if (futureDate >= periodStart && futureDate <= periodEnd) {
+                                                                                                                                                                                                                  count++;
+                                                                                                                                                                                                                          }
+                                                                                                                                                                                                                                }
+
+                                                                                                                                                                                                                                      const probability = (count / simulations) * 100;
+                                                                                                                                                                                                                                            document.getElementById('result').textContent = `Probability: ${probability.toFixed(2)}%`;
+                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                  </script></body>
+                                                                                                                                                                                                                                                  </html>

@@ -1,62 +1,203 @@
 <!DOCTYPE html><html lang="en">
-    <head>
+<head>
       <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Period Probability Calculator</title>
-            <style>
-                body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
-                    label, input, button { display: block; margin: 10px 0; }
-                        button { padding: 10px; cursor: pointer; }
-                            .result { margin-top: 20px; font-weight: bold; }
-                              </style>
-                              </head>
-                              <body>
-                                <h1>Period Probability Calculator</h1>
-                                  <label for="lastPeriod">Last Period Start Date:</label>
-                                    <input type="date" id="lastPeriod"><label for="cycleLength">Average Cycle Length (days):</label> <input type="number" id="cycleLength" value="28">
-
-                                    <label for="periodLength">Average Period Length (days):</label> <input type="number" id="periodLength" value="5">
-
-                                    <label for="futureDate">Date to Check:</label> <input type="date" id="futureDate">
-
-                                    <button onclick="calculateProbability()">Calculate Probability</button>
-
-                                      <div class="result" id="result"></div>  <script>
-                                          function calculateProbability() {
-                                                const lastPeriod = new Date(document.getElementById('lastPeriod').value);
-                                                      const cycleLength = parseInt(document.getElementById('cycleLength').value);
-                                                            const periodLength = parseInt(document.getElementById('periodLength').value);
-                                                                  const futureDate = new Date(document.getElementById('futureDate').value);
-
-                                                                        if (!lastPeriod || !futureDate || isNaN(cycleLength) || isNaN(periodLength)) {
-                                                                                document.getElementById('result').textContent = "Please fill all inputs correctly.";
-                                                                                        return;
-                                                                                              }
-
-                                                                                                    // Monte Carlo simulation parameters
-                                                                                                          const simulations = 10000;
-                                                                                                                let count = 0;
-
-                                                                                                                      for (let i = 0; i < simulations; i++) {
-                                                                                                                              const cycle = cycleLength + (Math.random() * 4 - 2); // +/- 2 days variation
-                                                                                                                                      const period = periodLength + (Math.random() * 2 - 1); // +/- 1 day variation
-                                                                                                                                              let nextPeriod = new Date(lastPeriod);
-
-                                                                                                                                                      while (nextPeriod < futureDate) {
-                                                                                                                                                                nextPeriod.setDate(nextPeriod.getDate() + cycle);
-                                                                                                                                                                        }
-
-                                                                                                                                                                                const periodStart = new Date(nextPeriod);
-                                                                                                                                                                                        const periodEnd = new Date(nextPeriod);
-                                                                                                                                                                                                periodEnd.setDate(periodStart.getDate() + period);
-
-                                                                                                                                                                                                        if (futureDate >= periodStart && futureDate <= periodEnd) {
-                                                                                                                                                                                                                  count++;
-                                                                                                                                                                                                                          }
-                                                                                                                                                                                                                                }
-
-                                                                                                                                                                                                                                      const probability = (count / simulations) * 100;
-                                                                                                                                                                                                                                            document.getElementById('result').textContent = `Probability: ${probability.toFixed(2)}%`;
-                                                                                                                                                                                                                                                }
-                                                                                                                                                                                                                                                  </script></body>
-                                                                                                                                                                                                                                                  </html>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Period Probability Calculator</title>
+      <style>
+            body {
+                  font-family: 'Segoe UI', Arial, sans-serif;
+                  background: linear-gradient(135deg, #f8fafc 0%, #e0e7ef 100%);
+                  min-height: 100vh;
+                  margin: 0;
+                  padding: 0;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+            }
+            .container {
+                  background: #fff;
+                  border-radius: 18px;
+                  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+                  padding: 2.5rem 2rem 2rem 2rem;
+                  max-width: 420px;
+                  width: 100%;
+                  margin: 2rem 1rem;
+            }
+            h1 {
+                  text-align: center;
+                  color: #2d3748;
+                  margin-bottom: 1.5rem;
+            }
+            label {
+                  margin-top: 1rem;
+                  color: #4a5568;
+                  font-weight: 500;
+            }
+            input[type="date"], input[type="number"] {
+                  width: 100%;
+                  padding: 0.6rem;
+                  border: 1px solid #cbd5e1;
+                  border-radius: 8px;
+                  margin-top: 0.3rem;
+                  font-size: 1rem;
+                  background: #f7fafc;
+                  box-sizing: border-box;
+            }
+            button {
+                  width: 100%;
+                  padding: 0.8rem;
+                  background: #2563eb;
+                  color: #fff;
+                  border: none;
+                  border-radius: 8px;
+                  font-size: 1.1rem;
+                  font-weight: 600;
+                  margin-top: 1.5rem;
+                  cursor: pointer;
+                  transition: background 0.2s;
+            }
+            button:hover {
+                  background: #1e40af;
+            }
+            .result {
+                  margin-top: 1.5rem;
+                  font-weight: bold;
+                  text-align: center;
+                  color: #2563eb;
+                  font-size: 1.2rem;
+            }
+            .chart-container {
+                  margin-top: 2.5rem;
+                  background: #f1f5f9;
+                  border-radius: 12px;
+                  padding: 1.2rem 0.8rem 0.5rem 0.8rem;
+            }
+            @media (max-width: 600px) {
+                  .container {
+                        padding: 1.2rem 0.5rem 1rem 0.5rem;
+                  }
+            }
+      </style>
+</head>
+<body>
+      <div class="container">
+            <h1>Period Probability Calculator</h1>
+            <label for="lastPeriod">Last Period Start Date:</label>
+            <input type="date" id="lastPeriod">
+            
+            <label for="cycleLength">Average Cycle Length (days):</label>
+            <input type="number" id="cycleLength" value="28">
+            
+            <label for="periodLength">Average Period Length (days):</label>
+            <input type="number" id="periodLength" value="5">
+            
+            <label for="futureDate">Date to Check:</label>
+            <input type="date" id="futureDate">
+            
+            <button onclick="calculateProbability()">Calculate Probability</button>
+            
+            <div class="result" id="result"></div>
+            <div class="chart-container">
+                  <canvas id="bellCurve" height="180"></canvas>
+            </div>
+      </div>
+      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+      <script>
+            let chart;
+            function calculateProbability() {
+                  const lastPeriod = new Date(document.getElementById('lastPeriod').value);
+                  const cycleLength = parseInt(document.getElementById('cycleLength').value);
+                  const periodLength = parseInt(document.getElementById('periodLength').value);
+                  const futureDate = new Date(document.getElementById('futureDate').value);
+                  
+                  if (!lastPeriod || !futureDate || isNaN(cycleLength) || isNaN(periodLength)) {
+                        document.getElementById('result').textContent = "Please fill all inputs correctly.";
+                        if (chart) chart.destroy();
+                        return;
+                  }
+                  
+                  // Monte Carlo simulation parameters
+                  const simulations = 100000;
+                  let count = 0;
+                  const daysRange = 15; // days before and after the checked date
+                  const distribution = Array(daysRange * 2 + 1).fill(0);
+                  
+                  for (let i = 0; i < simulations; i++) {
+                        const cycle = cycleLength + (Math.random() * 4 - 2); // +/- 2 days variation
+                        const period = periodLength + (Math.random() * 2 - 1); // +/- 1 day variation
+                        let nextPeriod = new Date(lastPeriod);
+                        
+                        while (nextPeriod < futureDate) {
+                              nextPeriod.setDate(nextPeriod.getDate() + cycle);
+                        }
+                        
+                        const periodStart = new Date(nextPeriod);
+                        const periodEnd = new Date(nextPeriod);
+                        periodEnd.setDate(periodStart.getDate() + period);
+                        
+                        if (futureDate >= periodStart && futureDate <= periodEnd) {
+                              count++;
+                        }
+                        
+                        // For bell curve: check probability for each day in range
+                        for (let d = -daysRange; d <= daysRange; d++) {
+                              const checkDate = new Date(futureDate);
+                              checkDate.setDate(futureDate.getDate() + d);
+                              if (checkDate >= periodStart && checkDate <= periodEnd) {
+                                    distribution[d + daysRange]++;
+                              }
+                        }
+                  }
+                  
+                  const probability = (count / simulations) * 100;
+                  document.getElementById('result').textContent = `Probability: ${probability.toFixed(2)}%`;
+                  
+                  // Prepare data for bell curve
+                  const labels = [];
+                  const data = [];
+                  for (let d = -daysRange; d <= daysRange; d++) {
+                        labels.push(d === 0 ? 'Checked Day' : (d > 0 ? `+${d}` : `${d}`));
+                        data.push((distribution[d + daysRange] / simulations) * 100);
+                  }
+                  
+                  // Draw chart
+                  const ctx = document.getElementById('bellCurve').getContext('2d');
+                  if (chart) chart.destroy();
+                  chart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                              labels: labels,
+                              datasets: [{
+                                    label: 'Probability (%)',
+                                    data: data,
+                                    borderColor: '#2563eb',
+                                    backgroundColor: 'rgba(37,99,235,0.08)',
+                                    fill: true,
+                                    tension: 0.4,
+                                    pointRadius: 0
+                              }]
+                        },
+                        options: {
+                              responsive: true,
+                              plugins: {
+                                    legend: { display: false },
+                                    tooltip: { mode: 'index', intersect: false }
+                              },
+                              scales: {
+                                    x: {
+                                          title: { display: true, text: 'Days from Checked Date' },
+                                          grid: { display: false }
+                                    },
+                                    y: {
+                                          title: { display: true, text: 'Probability (%)' },
+                                          min: 0,
+                                          max: 100,
+                                          grid: { color: '#e5e7eb' }
+                                    }
+                              }
+                        }
+                  });
+            }
+      </script>
+</script></body>
+</html>

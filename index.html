@@ -2,7 +2,7 @@
 <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Period Probability Calculator</title>
+      <title>Flow Forecast - Period Prediction</title>
       <style>
             body {
                   font-family: 'Segoe UI', Arial, sans-serif;
@@ -26,6 +26,16 @@
             h1 {
                   text-align: center;
                   color: #2d3748;
+                  margin-bottom: 0.5rem;
+            }
+            sub {
+                  display: block;
+                  text-align: center;
+                  color: #4a5568;
+                  font-weight: 600;
+                  margin-bottom: 1.5rem;
+            }
+            hr {
                   margin-bottom: 1.5rem;
             }
             label {
@@ -81,28 +91,54 @@
 </head>
 <body>
       <div class="container">
-            <h1>Period Probability Calculator</h1>
-            <label for="lastPeriod">Last Period Start Date:</label>
-            <input type="date" id="lastPeriod">
-            
-            <label for="cycleLength">Average Cycle Length (days):</label>
-            <input type="number" id="cycleLength" value="28">
-            
-            <label for="periodLength">Average Period Length (days):</label>
-            <input type="number" id="periodLength" value="5">
-            
-            <label for="futureDate">Date to Check:</label>
-            <input type="date" id="futureDate">
-            
-            <button onclick="calculateProbability()">Calculate Probability</button>
-            
-            <div class="result" id="result"></div>
-            <div class="chart-container">
-                  <canvas id="bellCurve" height="180"></canvas>
+            <h1>Flow Forecast</h1>
+            <sub>Period Probability Calculator</sub>
+
+            <hr>
+
+            <div>
+                  <label for="lastPeriod">Last Period Start Date:</label>
+                  <input type="date" id="lastPeriod">
+                  
+                  <label for="cycleLength">Average Cycle Length (days):</label>
+                  <input type="number" id="cycleLength" value="28">
+                  
+                  <label for="periodLength">Average Period Length (days):</label>
+                  <input type="number" id="periodLength" value="5">
+                  
+                  <label for="futureDate">Date to Check:</label>
+                  <input type="date" id="futureDate">
+                  
+                  <button onclick="calculateProbability()">Calculate Probability</button>
+                  
+                  <div class="result" id="result"></div>
+                  <div class="chart-container">
+                        <canvas id="bellCurve" height="180"></canvas>
+                  </div>
             </div>
       </div>
       <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
       <script>
+            // Set default values for lastPeriod and futureDate on page load
+            window.addEventListener('DOMContentLoaded', () => {
+                  const today = new Date();
+                  const pad = n => n.toString().padStart(2, '0');
+                  const yyyy = today.getFullYear();
+                  const mm = pad(today.getMonth() + 1);
+                  const dd = pad(today.getDate());
+                  const todayStr = `${yyyy}-${mm}-${dd}`;
+
+                  const future = new Date(today);
+                  future.setDate(today.getDate() + 28);
+                  const fyyyy = future.getFullYear();
+                  const fmm = pad(future.getMonth() + 1);
+                  const fdd = pad(future.getDate());
+                  const futureStr = `${fyyyy}-${fmm}-${fdd}`;
+
+                  document.getElementById('lastPeriod').value = todayStr;
+                  document.getElementById('futureDate').value = futureStr;
+            });
+
             let chart;
             function calculateProbability() {
                   const lastPeriod = new Date(document.getElementById('lastPeriod').value);

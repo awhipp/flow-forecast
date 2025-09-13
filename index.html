@@ -19,7 +19,7 @@
                   border-radius: 18px;
                   box-shadow: 0 4px 24px rgba(0,0,0,0.08);
                   padding: 2.5rem 2rem 2rem 2rem;
-                  max-width: 420px;
+                  max-width: 500px;
                   width: 100%;
                   margin: 2rem 1rem;
             }
@@ -81,6 +81,7 @@
                   background: #f1f5f9;
                   border-radius: 12px;
                   padding: 1.2rem 0.8rem 0.5rem 0.8rem;
+                  overflow-x: auto;
             }
             .month-navigation {
                   display: flex;
@@ -114,19 +115,115 @@
                   background: #f1f5f9;
                   border-color: #94a3b8;
             }
-            @media (max-width: 600px) {
+            /* Mobile devices (≤480px) */
+            @media (max-width: 480px) {
+                  body {
+                        padding: 0.5rem;
+                  }
                   .container {
-                        padding: 1.2rem 0.5rem 1rem 0.5rem;
+                        padding: 1rem 0.75rem;
+                        margin: 0.5rem;
+                        max-width: none;
+                        border-radius: 12px;
+                  }
+                  h1 {
+                        font-size: 1.5rem;
+                        margin-bottom: 0.25rem;
+                  }
+                  sub {
+                        font-size: 0.85rem;
+                        margin-bottom: 1rem;
+                  }
+                  label {
+                        font-size: 0.9rem;
+                        margin-top: 0.75rem;
+                  }
+                  input[type="date"], input[type="number"] {
+                        padding: 0.5rem;
+                        font-size: 0.9rem;
+                  }
+                  button {
+                        padding: 0.7rem;
+                        font-size: 1rem;
+                        margin-top: 1rem;
                   }
                   .month-navigation {
-                        padding: 0.8rem;
+                        padding: 0.75rem;
+                        margin: 1rem 0;
+                        flex-direction: column;
+                        gap: 0.5rem;
                   }
                   .month-navigation h3 {
                         font-size: 1rem;
+                        margin-bottom: 0.5rem;
                   }
                   .month-navigation button {
-                        padding: 0.4rem 0.8rem;
-                        font-size: 0.8rem;
+                        padding: 0.5rem 1rem;
+                        font-size: 0.85rem;
+                        width: 100%;
+                        margin: 0;
+                  }
+                  .month-navigation .nav-buttons {
+                        display: flex;
+                        gap: 0.5rem;
+                  }
+                  .result {
+                        font-size: 1rem;
+                        line-height: 1.4;
+                        margin-top: 1rem;
+                  }
+                  .chart-container {
+                        margin-top: 1.5rem;
+                        padding: 0.75rem 0.5rem;
+                  }
+                  #bellCurve {
+                        min-height: 180px;
+                  }
+            }
+
+            /* Large mobile devices (481px-768px) */
+            @media (min-width: 481px) and (max-width: 768px) {
+                  .container {
+                        padding: 1.5rem 1rem;
+                        max-width: 450px;
+                  }
+                  .month-navigation {
+                        padding: 0.9rem;
+                  }
+                  .month-navigation h3 {
+                        font-size: 1.05rem;
+                  }
+                  .month-navigation button {
+                        padding: 0.45rem 0.9rem;
+                        font-size: 0.9rem;
+                  }
+                  .chart-container {
+                        padding: 1rem 0.6rem;
+                  }
+            }
+
+            /* Tablet devices (769px-1024px) */
+            @media (min-width: 769px) and (max-width: 1024px) {
+                  .container {
+                        max-width: 600px;
+                        padding: 2rem 1.5rem;
+                  }
+                  .chart-container {
+                        padding: 1.5rem 1rem;
+                  }
+            }
+
+            /* Large desktop devices (≥1025px) */
+            @media (min-width: 1025px) {
+                  .container {
+                        max-width: 650px;
+                        padding: 3rem 2.5rem;
+                  }
+                  .chart-container {
+                        padding: 2rem 1.5rem;
+                  }
+                  #bellCurve {
+                        min-height: 250px;
                   }
             }
       </style>
@@ -149,9 +246,11 @@
                   <input type="number" id="periodLength" value="5">
                   
                   <div class="month-navigation">
-                        <button id="prevMonth" onclick="changeMonth(-1)">◀ Previous</button>
                         <h3 id="currentMonth">January 2024</h3>
-                        <button id="nextMonth" onclick="changeMonth(1)">Next ▶</button>
+                        <div class="nav-buttons">
+                              <button id="prevMonth" onclick="changeMonth(-1)">◀ Previous</button>
+                              <button id="nextMonth" onclick="changeMonth(1)">Next ▶</button>
+                        </div>
                   </div>
                   
                   <button onclick="calculateMonthProbability()">Calculate Monthly Forecast</button>
@@ -167,6 +266,7 @@
             // Global variables
             let currentMonthDate = new Date();
             let chart;
+            let lastCalculatedData = null; // Store last calculation for resize redraw
 
             // Set default values and initialize month navigation
             window.addEventListener('DOMContentLoaded', () => {
@@ -182,6 +282,16 @@
                   // Set current month to next month
                   currentMonthDate.setMonth(currentMonthDate.getMonth() + 1);
                   updateMonthDisplay();
+            });
+
+            // Handle window resize to redraw chart responsively
+            window.addEventListener('resize', () => {
+                  if (lastCalculatedData) {
+                        // Small delay to ensure layout has updated
+                        setTimeout(() => {
+                              drawMonthlyChart(lastCalculatedData.dailyPercentages, lastCalculatedData.daysInMonth);
+                        }, 100);
+                  }
             });
 
             // Update the month display
@@ -286,6 +396,12 @@
                         `Chance of period: <strong>${monthlyChance.toFixed(1)}%</strong><br>` +
                         `Peak probability: Day ${peakDay} (${maxProbability.toFixed(1)}%)`;
                   
+                  // Store data for resize redraw
+                  lastCalculatedData = {
+                        dailyPercentages: dailyPercentages,
+                        daysInMonth: daysInMonth
+                  };
+                  
                   // Create bell curve chart
                   drawMonthlyChart(dailyPercentages, daysInMonth);
             }
@@ -297,17 +413,33 @@
                   
                   // Set canvas size
                   const rect = canvas.getBoundingClientRect();
+                  const screenWidth = window.innerWidth;
+                  
+                  // Responsive height based on screen size
+                  let canvasHeight = 200;
+                  if (screenWidth <= 480) {
+                        canvasHeight = 180;
+                  } else if (screenWidth >= 1025) {
+                        canvasHeight = 250;
+                  }
+                  
                   canvas.width = rect.width * window.devicePixelRatio;
-                  canvas.height = 200 * window.devicePixelRatio;
+                  canvas.height = canvasHeight * window.devicePixelRatio;
                   ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
                   
-                  // Chart dimensions
-                  const padding = 40;
+                  // Responsive chart dimensions
+                  let padding = 40;
+                  if (screenWidth <= 480) {
+                        padding = 30;
+                  } else if (screenWidth <= 768) {
+                        padding = 35;
+                  }
+                  
                   const chartWidth = rect.width - padding * 2;
-                  const chartHeight = 200 - padding * 2;
+                  const chartHeight = canvasHeight - padding * 2;
                   
                   // Clear canvas
-                  ctx.clearRect(0, 0, rect.width, 200);
+                  ctx.clearRect(0, 0, rect.width, canvasHeight);
                   
                   // Find max value for scaling
                   const maxValue = Math.max(...dailyPercentages, 10); // minimum 10% for scaling
@@ -373,13 +505,33 @@
                         ctx.stroke();
                   }
                   
+                  // Responsive font sizes
+                  let labelFontSize = 12;
+                  let titleFontSize = 14;
+                  let axisTitleFontSize = 12;
+                  
+                  if (screenWidth <= 480) {
+                        labelFontSize = 10;
+                        titleFontSize = 12;
+                        axisTitleFontSize = 10;
+                  } else if (screenWidth <= 768) {
+                        labelFontSize = 11;
+                        titleFontSize = 13;
+                        axisTitleFontSize = 11;
+                  } else if (screenWidth >= 1025) {
+                        labelFontSize = 13;
+                        titleFontSize = 16;
+                        axisTitleFontSize = 13;
+                  }
+                  
                   // Draw labels
                   ctx.fillStyle = '#374151';
-                  ctx.font = '12px Arial';
+                  ctx.font = `${labelFontSize}px Arial`;
                   ctx.textAlign = 'center';
                   
-                  // X-axis labels (every 5 days)
-                  for (let day = 1; day <= daysInMonth; day += 5) {
+                  // X-axis labels - responsive frequency
+                  let dayStep = screenWidth <= 480 ? 7 : 5; // Show fewer labels on mobile
+                  for (let day = 1; day <= daysInMonth; day += dayStep) {
                         const x = padding + (chartWidth * (day - 1) / (daysInMonth - 1));
                         ctx.fillText(day.toString(), x, padding + chartHeight + 20);
                   }
@@ -394,18 +546,21 @@
                   
                   // Chart titles
                   ctx.textAlign = 'center';
-                  ctx.font = 'bold 14px Arial';
+                  ctx.font = `bold ${titleFontSize}px Arial`;
                   ctx.fillText('Daily Period Probability', rect.width / 2, 20);
                   
-                  ctx.font = '12px Arial';
-                  ctx.fillText('Day of Month', rect.width / 2, 200 - 5);
+                  ctx.font = `${labelFontSize}px Arial`;
+                  ctx.fillText('Day of Month', rect.width / 2, canvasHeight - 5);
                   
-                  // Y-axis title (rotated)
-                  ctx.save();
-                  ctx.translate(15, 100);
-                  ctx.rotate(-Math.PI / 2);
-                  ctx.fillText('Probability (%)', 0, 0);
-                  ctx.restore();
+                  // Y-axis title (rotated) - only show on larger screens
+                  if (screenWidth > 480) {
+                        ctx.save();
+                        ctx.translate(15, canvasHeight / 2);
+                        ctx.rotate(-Math.PI / 2);
+                        ctx.font = `${axisTitleFontSize}px Arial`;
+                        ctx.fillText('Probability (%)', 0, 0);
+                        ctx.restore();
+                  }
             }
 
             // Clear chart when needed
@@ -413,6 +568,7 @@
                   const canvas = document.getElementById('bellCurve');
                   const ctx = canvas.getContext('2d');
                   ctx.clearRect(0, 0, canvas.width, canvas.height);
+                  lastCalculatedData = null; // Clear stored data
             }
       </script>
 </script></body>

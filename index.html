@@ -82,9 +82,51 @@
                   border-radius: 12px;
                   padding: 1.2rem 0.8rem 0.5rem 0.8rem;
             }
+            .month-navigation {
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  margin: 1.5rem 0;
+                  padding: 1rem;
+                  background: #f8fafc;
+                  border-radius: 12px;
+                  border: 1px solid #e2e8f0;
+            }
+            .month-navigation h3 {
+                  margin: 0;
+                  color: #2d3748;
+                  font-size: 1.1rem;
+                  font-weight: 600;
+            }
+            .month-navigation button {
+                  background: #ffffff;
+                  border: 1px solid #cbd5e1;
+                  border-radius: 8px;
+                  padding: 0.5rem 1rem;
+                  font-size: 0.9rem;
+                  color: #4a5568;
+                  cursor: pointer;
+                  transition: all 0.2s;
+                  width: auto;
+                  margin: 0;
+            }
+            .month-navigation button:hover {
+                  background: #f1f5f9;
+                  border-color: #94a3b8;
+            }
             @media (max-width: 600px) {
                   .container {
                         padding: 1.2rem 0.5rem 1rem 0.5rem;
+                  }
+                  .month-navigation {
+                        padding: 0.8rem;
+                  }
+                  .month-navigation h3 {
+                        font-size: 1rem;
+                  }
+                  .month-navigation button {
+                        padding: 0.4rem 0.8rem;
+                        font-size: 0.8rem;
                   }
             }
       </style>
@@ -106,20 +148,27 @@
                   <label for="periodLength">Average Period Length (days):</label>
                   <input type="number" id="periodLength" value="5">
                   
-                  <label for="futureDate">Date to Check:</label>
-                  <input type="date" id="futureDate">
+                  <div class="month-navigation">
+                        <button id="prevMonth" onclick="changeMonth(-1)">◀ Previous</button>
+                        <h3 id="currentMonth">January 2024</h3>
+                        <button id="nextMonth" onclick="changeMonth(1)">Next ▶</button>
+                  </div>
                   
-                  <button onclick="calculateProbability()">Calculate Probability</button>
+                  <button onclick="calculateMonthProbability()">Calculate Monthly Forecast</button>
                   
                   <div class="result" id="result"></div>
                   <div class="chart-container">
-                        <canvas id="bellCurve" height="180"></canvas>
+                        <canvas id="bellCurve" height="200"></canvas>
                   </div>
             </div>
       </div>
       <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
       <script>
-            // Set default values for lastPeriod and futureDate on page load
+            // Global variables
+            let currentMonthDate = new Date();
+            let chart;
+
+            // Set default values and initialize month navigation
             window.addEventListener('DOMContentLoaded', () => {
                   const today = new Date();
                   const pad = n => n.toString().padStart(2, '0');
@@ -128,111 +177,242 @@
                   const dd = pad(today.getDate());
                   const todayStr = `${yyyy}-${mm}-${dd}`;
 
-                  const future = new Date(today);
-                  future.setDate(today.getDate() + 28);
-                  const fyyyy = future.getFullYear();
-                  const fmm = pad(future.getMonth() + 1);
-                  const fdd = pad(future.getDate());
-                  const futureStr = `${fyyyy}-${fmm}-${fdd}`;
-
                   document.getElementById('lastPeriod').value = todayStr;
-                  document.getElementById('futureDate').value = futureStr;
+                  
+                  // Set current month to next month
+                  currentMonthDate.setMonth(currentMonthDate.getMonth() + 1);
+                  updateMonthDisplay();
             });
 
-            let chart;
-            function calculateProbability() {
+            // Update the month display
+            function updateMonthDisplay() {
+                  const monthNames = ["January", "February", "March", "April", "May", "June",
+                        "July", "August", "September", "October", "November", "December"];
+                  const monthDisplay = `${monthNames[currentMonthDate.getMonth()]} ${currentMonthDate.getFullYear()}`;
+                  document.getElementById('currentMonth').textContent = monthDisplay;
+            }
+
+            // Change month (direction: -1 for previous, +1 for next)
+            function changeMonth(direction) {
+                  currentMonthDate.setMonth(currentMonthDate.getMonth() + direction);
+                  updateMonthDisplay();
+                  
+                  // Auto-calculate if we have valid inputs
+                  const lastPeriod = document.getElementById('lastPeriod').value;
+                  const cycleLength = document.getElementById('cycleLength').value;
+                  const periodLength = document.getElementById('periodLength').value;
+                  
+                  if (lastPeriod && cycleLength && periodLength) {
+                        calculateMonthProbability();
+                  }
+            }
+
+            // Main calculation function for monthly forecast
+            function calculateMonthProbability() {
                   const lastPeriod = new Date(document.getElementById('lastPeriod').value);
                   const cycleLength = parseInt(document.getElementById('cycleLength').value);
                   const periodLength = parseInt(document.getElementById('periodLength').value);
-                  const futureDate = new Date(document.getElementById('futureDate').value);
                   
-                  if (!lastPeriod || !futureDate || isNaN(cycleLength) || isNaN(periodLength)) {
+                  if (!lastPeriod || isNaN(cycleLength) || isNaN(periodLength)) {
                         document.getElementById('result').textContent = "Please fill all inputs correctly.";
-                        if (chart) chart.destroy();
+                        clearChart();
                         return;
                   }
                   
-                  // Monte Carlo simulation parameters
+                  // Get the first and last day of the current viewing month
+                  const firstDayOfMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), 1);
+                  const lastDayOfMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 0);
+                  const daysInMonth = lastDayOfMonth.getDate();
+                  
+                  // Monte Carlo simulation
                   const simulations = 100000;
-                  let count = 0;
-                  const daysRange = 15; // days before and after the checked date
-                  const distribution = Array(daysRange * 2 + 1).fill(0);
+                  const dailyProbabilities = Array(daysInMonth).fill(0);
+                  let anyPeriodInMonth = 0;
                   
                   for (let i = 0; i < simulations; i++) {
+                        // Add variation to cycle and period lengths
                         const cycle = cycleLength + (Math.random() * 4 - 2); // +/- 2 days variation
                         const period = periodLength + (Math.random() * 2 - 1); // +/- 1 day variation
-                        let nextPeriod = new Date(lastPeriod);
                         
-                        while (nextPeriod < futureDate) {
-                              nextPeriod.setDate(nextPeriod.getDate() + cycle);
-                        }
+                        // Find all periods that could overlap with the target month
+                        let nextPeriodStart = new Date(lastPeriod);
+                        let foundPeriodInMonth = false;
                         
-                        const periodStart = new Date(nextPeriod);
-                        const periodEnd = new Date(nextPeriod);
-                        periodEnd.setDate(periodStart.getDate() + period);
-                        
-                        if (futureDate >= periodStart && futureDate <= periodEnd) {
-                              count++;
-                        }
-                        
-                        // For bell curve: check probability for each day in range
-                        for (let d = -daysRange; d <= daysRange; d++) {
-                              const checkDate = new Date(futureDate);
-                              checkDate.setDate(futureDate.getDate() + d);
-                              if (checkDate >= periodStart && checkDate <= periodEnd) {
-                                    distribution[d + daysRange]++;
-                              }
-                        }
-                  }
-                  
-                  const probability = (count / simulations) * 100;
-                  document.getElementById('result').textContent = `Probability: ${probability.toFixed(2)}%`;
-                  
-                  // Prepare data for bell curve
-                  const labels = [];
-                  const data = [];
-                  for (let d = -daysRange; d <= daysRange; d++) {
-                        labels.push(d === 0 ? 'Checked Day' : (d > 0 ? `+${d}` : `${d}`));
-                        data.push((distribution[d + daysRange] / simulations) * 100);
-                  }
-                  
-                  // Draw chart
-                  const ctx = document.getElementById('bellCurve').getContext('2d');
-                  if (chart) chart.destroy();
-                  chart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                              labels: labels,
-                              datasets: [{
-                                    label: 'Probability (%)',
-                                    data: data,
-                                    borderColor: '#2563eb',
-                                    backgroundColor: 'rgba(37,99,235,0.08)',
-                                    fill: true,
-                                    tension: 0.4,
-                                    pointRadius: 0
-                              }]
-                        },
-                        options: {
-                              responsive: true,
-                              plugins: {
-                                    legend: { display: false },
-                                    tooltip: { mode: 'index', intersect: false }
-                              },
-                              scales: {
-                                    x: {
-                                          title: { display: true, text: 'Days from Checked Date' },
-                                          grid: { display: false }
-                                    },
-                                    y: {
-                                          title: { display: true, text: 'Probability (%)' },
-                                          min: 0,
-                                          max: 100,
-                                          grid: { color: '#e5e7eb' }
+                        // Look ahead to find periods that might affect this month
+                        for (let cycles = 0; cycles < 12; cycles++) { // Check up to 12 cycles ahead
+                              nextPeriodStart.setDate(nextPeriodStart.getDate() + cycle);
+                              
+                              const periodStart = new Date(nextPeriodStart);
+                              const periodEnd = new Date(nextPeriodStart);
+                              periodEnd.setDate(periodStart.getDate() + period - 1); // period length includes start day
+                              
+                              // Check if this period overlaps with our target month
+                              if (periodEnd >= firstDayOfMonth && periodStart <= lastDayOfMonth) {
+                                    foundPeriodInMonth = true;
+                                    
+                                    // Mark each day in the month that has period
+                                    for (let day = 1; day <= daysInMonth; day++) {
+                                          const checkDate = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), day);
+                                          if (checkDate >= periodStart && checkDate <= periodEnd) {
+                                                dailyProbabilities[day - 1]++;
+                                          }
                                     }
                               }
+                              
+                              // Stop if we're well past the target month
+                              if (nextPeriodStart > lastDayOfMonth && 
+                                  (nextPeriodStart.getTime() - lastDayOfMonth.getTime()) > (90 * 24 * 60 * 60 * 1000)) {
+                                    break;
+                              }
                         }
-                  });
+                        
+                        if (foundPeriodInMonth) {
+                              anyPeriodInMonth++;
+                        }
+                  }
+                  
+                  // Convert counts to percentages
+                  const dailyPercentages = dailyProbabilities.map(count => (count / simulations) * 100);
+                  const monthlyChance = (anyPeriodInMonth / simulations) * 100;
+                  
+                  // Find peak probability day
+                  const maxProbability = Math.max(...dailyPercentages);
+                  const peakDay = dailyPercentages.indexOf(maxProbability) + 1;
+                  
+                  // Display results
+                  const monthName = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentMonthDate);
+                  document.getElementById('result').innerHTML = 
+                        `<strong>${monthName}</strong><br>` +
+                        `Chance of period: <strong>${monthlyChance.toFixed(1)}%</strong><br>` +
+                        `Peak probability: Day ${peakDay} (${maxProbability.toFixed(1)}%)`;
+                  
+                  // Create bell curve chart
+                  drawMonthlyChart(dailyPercentages, daysInMonth);
+            }
+
+            // Draw the monthly probability chart using native Canvas
+            function drawMonthlyChart(dailyPercentages, daysInMonth) {
+                  const canvas = document.getElementById('bellCurve');
+                  const ctx = canvas.getContext('2d');
+                  
+                  // Set canvas size
+                  const rect = canvas.getBoundingClientRect();
+                  canvas.width = rect.width * window.devicePixelRatio;
+                  canvas.height = 200 * window.devicePixelRatio;
+                  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+                  
+                  // Chart dimensions
+                  const padding = 40;
+                  const chartWidth = rect.width - padding * 2;
+                  const chartHeight = 200 - padding * 2;
+                  
+                  // Clear canvas
+                  ctx.clearRect(0, 0, rect.width, 200);
+                  
+                  // Find max value for scaling
+                  const maxValue = Math.max(...dailyPercentages, 10); // minimum 10% for scaling
+                  
+                  // Draw grid lines
+                  ctx.strokeStyle = '#e5e7eb';
+                  ctx.lineWidth = 1;
+                  for (let i = 0; i <= 5; i++) {
+                        const y = padding + (chartHeight * i / 5);
+                        ctx.beginPath();
+                        ctx.moveTo(padding, y);
+                        ctx.lineTo(padding + chartWidth, y);
+                        ctx.stroke();
+                  }
+                  
+                  // Draw axes
+                  ctx.strokeStyle = '#374151';
+                  ctx.lineWidth = 2;
+                  ctx.beginPath();
+                  ctx.moveTo(padding, padding);
+                  ctx.lineTo(padding, padding + chartHeight);
+                  ctx.lineTo(padding + chartWidth, padding + chartHeight);
+                  ctx.stroke();
+                  
+                  // Draw data line
+                  ctx.strokeStyle = '#2563eb';
+                  ctx.fillStyle = 'rgba(37,99,235,0.1)';
+                  ctx.lineWidth = 2;
+                  
+                  if (dailyPercentages.length > 0) {
+                        ctx.beginPath();
+                        
+                        // Create the line path
+                        for (let i = 0; i < dailyPercentages.length; i++) {
+                              const x = padding + (chartWidth * i / (dailyPercentages.length - 1));
+                              const y = padding + chartHeight - (chartHeight * dailyPercentages[i] / maxValue);
+                              
+                              if (i === 0) {
+                                    ctx.moveTo(x, y);
+                              } else {
+                                    ctx.lineTo(x, y);
+                              }
+                        }
+                        
+                        // Fill under the curve
+                        ctx.lineTo(padding + chartWidth, padding + chartHeight);
+                        ctx.lineTo(padding, padding + chartHeight);
+                        ctx.closePath();
+                        ctx.fill();
+                        
+                        // Draw the line
+                        ctx.beginPath();
+                        for (let i = 0; i < dailyPercentages.length; i++) {
+                              const x = padding + (chartWidth * i / (dailyPercentages.length - 1));
+                              const y = padding + chartHeight - (chartHeight * dailyPercentages[i] / maxValue);
+                              
+                              if (i === 0) {
+                                    ctx.moveTo(x, y);
+                              } else {
+                                    ctx.lineTo(x, y);
+                              }
+                        }
+                        ctx.stroke();
+                  }
+                  
+                  // Draw labels
+                  ctx.fillStyle = '#374151';
+                  ctx.font = '12px Arial';
+                  ctx.textAlign = 'center';
+                  
+                  // X-axis labels (every 5 days)
+                  for (let day = 1; day <= daysInMonth; day += 5) {
+                        const x = padding + (chartWidth * (day - 1) / (daysInMonth - 1));
+                        ctx.fillText(day.toString(), x, padding + chartHeight + 20);
+                  }
+                  
+                  // Y-axis labels
+                  ctx.textAlign = 'right';
+                  for (let i = 0; i <= 5; i++) {
+                        const value = (maxValue * i / 5).toFixed(1);
+                        const y = padding + chartHeight - (chartHeight * i / 5) + 4;
+                        ctx.fillText(value + '%', padding - 10, y);
+                  }
+                  
+                  // Chart titles
+                  ctx.textAlign = 'center';
+                  ctx.font = 'bold 14px Arial';
+                  ctx.fillText('Daily Period Probability', rect.width / 2, 20);
+                  
+                  ctx.font = '12px Arial';
+                  ctx.fillText('Day of Month', rect.width / 2, 200 - 5);
+                  
+                  // Y-axis title (rotated)
+                  ctx.save();
+                  ctx.translate(15, 100);
+                  ctx.rotate(-Math.PI / 2);
+                  ctx.fillText('Probability (%)', 0, 0);
+                  ctx.restore();
+            }
+
+            // Clear chart when needed
+            function clearChart() {
+                  const canvas = document.getElementById('bellCurve');
+                  const ctx = canvas.getContext('2d');
+                  ctx.clearRect(0, 0, canvas.width, canvas.height);
             }
       </script>
 </script></body>

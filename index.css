@@ -204,7 +204,8 @@ button:disabled {
     border: 1px solid #e5e7eb;
     position: relative;
     cursor: pointer;
-    transition: transform 0.15s ease; /* Reduced transition properties for better performance */
+    transition: transform 0.15s ease;
+    /* Reduced transition properties for better performance */
     min-height: 40px;
 }
 
@@ -321,7 +322,8 @@ button:disabled {
     font-size: 0.9rem;
     color: #4a5568;
     cursor: pointer;
-    transition: background-color 0.15s ease; /* More specific transition for better performance */
+    transition: background-color 0.15s ease;
+    /* More specific transition for better performance */
     width: auto;
     margin: 0;
 }

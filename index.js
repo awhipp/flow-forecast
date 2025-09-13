@@ -33,9 +33,9 @@ window.addEventListener('resize', () => {
 // Update the month display
 function updateMonthDisplay() {
     // Use native Intl.DateTimeFormat for better performance and fewer hardcoded strings
-    const monthDisplay = new Intl.DateTimeFormat('en-US', { 
-        month: 'long', 
-        year: 'numeric' 
+    const monthDisplay = new Intl.DateTimeFormat('en-US', {
+        month: 'long',
+        year: 'numeric'
     }).format(currentMonthDate);
     document.getElementById('currentMonth').textContent = monthDisplay;
 }
@@ -117,7 +117,7 @@ function calculateMonthProbability() {
 
     function runSimulationBatch() {
         const batchEnd = Math.min(completed + batchSize, simulations);
-        
+
         for (let i = completed; i < batchEnd; i++) {
             // Add variation to cycle and period lengths
             const cycle = cycleLength + (Math.random() * 4 - 2); // +/- 2 days variation
@@ -141,7 +141,7 @@ function calculateMonthProbability() {
                     // Mark each day in the month that has period
                     const periodStartDay = Math.max(1, Math.ceil((nextPeriodTime - firstDayTime) / dayMs) + 1);
                     const periodEndDay = Math.min(daysInMonth, Math.floor((periodEndTime - firstDayTime) / dayMs) + 1);
-                    
+
                     for (let day = periodStartDay; day <= periodEndDay; day++) {
                         dailyProbabilities[day - 1]++;
                     }

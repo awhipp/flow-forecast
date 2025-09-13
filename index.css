@@ -112,8 +112,52 @@ button:disabled {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.progress-container {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.progress-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+    border-radius: 4px;
+    transition: width 0.2s ease;
+    width: 0%;
+}
+
+.progress-text {
+    font-size: 0.8rem;
+    color: #6b7280;
+    text-align: center;
 }
 
 .result {
@@ -160,14 +204,14 @@ button:disabled {
     border: 1px solid #e5e7eb;
     position: relative;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: transform 0.15s ease; /* Reduced transition properties for better performance */
     min-height: 40px;
 }
 
 .calendar-day:hover {
     transform: scale(1.05);
     z-index: 10;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    /* Removed expensive box-shadow on hover for better performance */
 }
 
 .calendar-day.other-month {
@@ -277,7 +321,7 @@ button:disabled {
     font-size: 0.9rem;
     color: #4a5568;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background-color 0.15s ease; /* More specific transition for better performance */
     width: auto;
     margin: 0;
 }

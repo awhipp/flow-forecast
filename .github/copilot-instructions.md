@@ -5,8 +5,8 @@ Flow Forecast is a standalone HTML/CSS/JavaScript web application that provides 
 **Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.**
 
 ## Application Overview
-- **Type**: Single-page web application (index.html with embedded CSS/JavaScript)
-- **Dependencies**: Chart.js library loaded from CDN (https://cdn.jsdelivr.net/npm/chart.js)
+- **Type**: Single-page web application (separate HTML, CSS, and JavaScript files)
+- **Dependencies**: No external dependencies (Chart.js removed for pure CSS implementation)
 - **Deployment**: Static files served via HTTP server
 - **No build system**: No package.json, Makefile, npm scripts, or build tools
 - **No testing framework**: No automated tests or testing infrastructure
@@ -15,22 +15,26 @@ Flow Forecast is a standalone HTML/CSS/JavaScript web application that provides 
 
 ### Repository Structure
 ```
-/home/runner/work/flow-forecast/flow-forecast/
+c:\Users\alexr\OneDrive\Desktop\flow-forecast\
 ├── .git/
+├── .github/
+│   └── copilot-instructions.md
 ├── README.md
-└── index.html (18,882 bytes - complete application)
+├── index.html (main HTML structure)
+├── index.css (responsive styles)
+└── index.js (optimized Monte Carlo simulation)
 ```
 
 ### Development Environment Setup
 Run these commands to set up and test the application:
 
 ```bash
-cd /home/runner/work/flow-forecast/flow-forecast
-python3 -m http.server 8000
+cd "c:\Users\alexr\OneDrive\Desktop\flow-forecast"
+python -m http.server 8000
 ```
 - **Timing**: Server starts in 1-2 seconds
 - **Access**: Open http://localhost:8000/index.html in browser
-- **Note**: Server runs indefinitely until stopped with Ctrl+C or `pkill -f "python3 -m http.server"`
+- **Note**: Server runs indefinitely until stopped with Ctrl+C or `pkill -f "python -m http.server"`
 
 ### Validation and Testing
 
@@ -39,8 +43,8 @@ Always manually test the application after making changes by running through the
 
 1. **Start the HTTP server**:
    ```bash
-   cd /home/runner/work/flow-forecast/flow-forecast
-   python3 -m http.server 8000 &
+   cd "c:\Users\alexr\OneDrive\Desktop\flow-forecast"
+   python -m http.server 8000 &
    ```
 
 2. **Test Complete User Workflow**:
@@ -54,7 +58,7 @@ Always manually test the application after making changes by running through the
 
 3. **Stop the server**:
    ```bash
-   pkill -f "python3 -m http.server"
+   pkill -f "python -m http.server"
    ```
 
 **Expected Results**:
@@ -66,47 +70,46 @@ Always manually test the application after making changes by running through the
 
 ### File Editing Guidelines
 
-**Main Application File**: `/home/runner/work/flow-forecast/flow-forecast/index.html`
-- Contains complete application: HTML structure, CSS styling, and JavaScript logic
-- JavaScript starts at line 166 with `<script>` tag
-- External dependency: Chart.js CDN link at line 165
-- Application logic includes Monte Carlo simulation for probability calculations
-- Global variables: `currentMonthDate`, `chart`
+**Main Application Files**:
+- `index.html`: Main HTML structure and document layout
+- `index.css`: Complete responsive styling and animations
+- `index.js`: Optimized Monte Carlo simulation and UI logic
 
 **Key Functions to Understand**:
-- `updateMonthDisplay()`: Updates month navigation display
-- `changeMonth(direction)`: Handles Previous/Next navigation
-- `calculateForecast()`: Core Monte Carlo simulation logic
-- `updateChart()`: Creates/updates probability distribution chart
+- `updateMonthDisplay()`: Updates month navigation display using Intl.DateTimeFormat
+- `changeMonth(direction)`: Handles Previous/Next navigation with auto-calculation
+- `calculateMonthProbability()`: Core Monte Carlo simulation with performance optimizations
+- `drawCalendarHeatmap()`: Creates calendar heat map with DOM fragment optimization
 
 ## Common Development Tasks
 
 ### Making Code Changes
-1. Edit `/home/runner/work/flow-forecast/flow-forecast/index.html` directly
+1. Edit the appropriate file (`index.html`, `index.css`, or `index.js`) directly
 2. Test changes immediately by refreshing browser (no build step required)
 3. **Always run complete manual validation** after changes
 
 ### Debugging Issues
 - Use browser developer tools for JavaScript debugging
-- Check browser console for errors (especially Chart.js loading issues)
-- Verify CDN connectivity if chart functionality fails
+- Check browser console for errors and performance issues
+- Verify responsive design across different screen sizes
 
 ### Code Style Guidelines
-- Follow existing JavaScript formatting in the file
-- Maintain responsive CSS design patterns
-- Keep Monte Carlo simulation logic efficient (currently processes thousands of cycles)
+- Follow existing JavaScript formatting and use modern ES6+ features
+- Maintain responsive CSS design patterns with optimized transitions
+- Keep Monte Carlo simulation logic efficient (uses timestamp calculations for better performance)
+- Use DOM fragments for calendar rendering to minimize layout thrashing
 
 ## Timing Expectations
 - **Server startup**: 1-2 seconds
-- **Page load**: 2-3 seconds (depends on CDN loading)
-- **Calculation time**: Under 1 second for Monte Carlo simulation
+- **Page load**: 2-3 seconds (instant loading with no external dependencies)
+- **Calculation time**: Under 0.5 seconds for Monte Carlo simulation (optimized with timestamp calculations)
 - **No build time**: Application requires no compilation or bundling
 
 ## Limitations and Considerations
 - **No automated testing**: All validation must be manual
-- **CDN dependency**: Chart.js must load from external source
-- **Single file architecture**: All code contained in one HTML file
-- **No package management**: Dependencies managed via CDN links
+- **No external dependencies**: Pure HTML/CSS/JavaScript implementation
+- **Separated file architecture**: HTML, CSS, and JavaScript in separate files for maintainability
+- **No package management**: No dependencies to manage
 - **No CI/CD**: No GitHub workflows or automated builds
 
 ## Security Notes

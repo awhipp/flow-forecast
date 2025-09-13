@@ -5,27 +5,26 @@ let lastCalculatedData = null; // Store last calculation for resize redraw
 // Set default values and initialize month navigation
 window.addEventListener('DOMContentLoaded', () => {
     const today = new Date();
-    const pad = n => n.toString().padStart(2, '0');
-    const yyyy = today.getFullYear();
-    const mm = pad(today.getMonth() + 1);
-    const dd = pad(today.getDate());
-    const todayStr = `${yyyy}-${mm}-${dd}`;
+    // Use native toISOString for better performance and shorter code
+    const todayStr = today.toISOString().split('T')[0];
 
     document.getElementById('lastPeriod').value = todayStr;
 
     // Set current month to next month
     currentMonthDate.setMonth(currentMonthDate.getMonth() + 1);
     updateMonthDisplay();
-    
+
     // Initialize blank calendar
     initializeBlankCalendar();
 });
 
 // Handle window resize to redraw calendar responsively
+let resizeTimer;
 window.addEventListener('resize', () => {
     if (lastCalculatedData) {
-        // Small delay to ensure layout has updated
-        setTimeout(() => {
+        // Debounce resize events for better performance
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
             drawCalendarHeatmap(lastCalculatedData.dailyPercentages, lastCalculatedData.daysInMonth);
         }, 100);
     }
@@ -33,9 +32,11 @@ window.addEventListener('resize', () => {
 
 // Update the month display
 function updateMonthDisplay() {
-    const monthNames = ["January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"];
-    const monthDisplay = `${monthNames[currentMonthDate.getMonth()]} ${currentMonthDate.getFullYear()}`;
+    // Use native Intl.DateTimeFormat for better performance and fewer hardcoded strings
+    const monthDisplay = new Intl.DateTimeFormat('en-US', { 
+        month: 'long', 
+        year: 'numeric' 
+    }).format(currentMonthDate);
     document.getElementById('currentMonth').textContent = monthDisplay;
 }
 
@@ -44,13 +45,21 @@ function changeMonth(direction) {
     currentMonthDate.setMonth(currentMonthDate.getMonth() + direction);
     updateMonthDisplay();
 
-    // Auto-calculate if we have valid inputs
-    const lastPeriod = document.getElementById('lastPeriod').value;
-    const cycleLength = document.getElementById('cycleLength').value;
-    const periodLength = document.getElementById('periodLength').value;
-    const simulations = document.getElementById('simulations').value;
+    // Hide progress bar from any previous calculation
+    const progressContainer = document.getElementById('progressContainer');
+    if (progressContainer) {
+        progressContainer.style.display = 'none';
+    }
 
-    if (lastPeriod && cycleLength && periodLength && simulations) {
+    // Auto-calculate if we have valid inputs
+    const inputs = {
+        lastPeriod: document.getElementById('lastPeriod').value,
+        cycleLength: document.getElementById('cycleLength').value,
+        periodLength: document.getElementById('periodLength').value,
+        simulations: document.getElementById('simulations').value
+    };
+
+    if (inputs.lastPeriod && inputs.cycleLength && inputs.periodLength && inputs.simulations) {
         calculateMonthProbability();
     } else {
         // Show blank calendar if inputs are not complete
@@ -62,105 +71,147 @@ function changeMonth(direction) {
 function calculateMonthProbability() {
     const button = document.querySelector('button[onclick="calculateMonthProbability()"]');
     const originalText = button.textContent;
-    
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    const resultDiv = document.getElementById('result');
+
     // Show loading state
     button.disabled = true;
     button.innerHTML = '<span class="loading-spinner"></span>Calculating...';
-    
-    // Use setTimeout to allow UI to update before starting computation
-    setTimeout(() => {
-        try {
-            const lastPeriod = new Date(document.getElementById('lastPeriod').value);
-            const cycleLength = parseInt(document.getElementById('cycleLength').value);
-            const periodLength = parseInt(document.getElementById('periodLength').value);
-            const simulations = parseInt(document.getElementById('simulations').value);
+    progressContainer.style.display = 'block';
+    resultDiv.textContent = '';
 
-            if (!lastPeriod || isNaN(cycleLength) || isNaN(periodLength) || isNaN(simulations)) {
-                document.getElementById('result').textContent = "Please fill all inputs correctly.";
-                clearChart();
-                return;
-            }
+    // Get input values
+    const lastPeriod = new Date(document.getElementById('lastPeriod').value);
+    const cycleLength = parseInt(document.getElementById('cycleLength').value);
+    const periodLength = parseInt(document.getElementById('periodLength').value);
+    const simulations = parseInt(document.getElementById('simulations').value);
 
-    // Get the first and last day of the current viewing month
-    const firstDayOfMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), 1);
-    const lastDayOfMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 0);
+    if (!lastPeriod || isNaN(cycleLength) || isNaN(periodLength) || isNaN(simulations)) {
+        resetCalculationUI(button, originalText, progressContainer);
+        resultDiv.textContent = "Please fill all inputs correctly.";
+        clearChart();
+        return;
+    }
+
+    // Cache month calculations for better performance
+    const year = currentMonthDate.getFullYear();
+    const month = currentMonthDate.getMonth();
+    const firstDayOfMonth = new Date(year, month, 1);
+    const lastDayOfMonth = new Date(year, month + 1, 0);
     const daysInMonth = lastDayOfMonth.getDate();
 
-    // Monte Carlo simulation
-    const dailyProbabilities = Array(daysInMonth).fill(0);
+    // Pre-allocate arrays for better performance
+    const dailyProbabilities = new Array(daysInMonth).fill(0);
     let anyPeriodInMonth = 0;
 
-    for (let i = 0; i < simulations; i++) {
-        // Add variation to cycle and period lengths
-        const cycle = cycleLength + (Math.random() * 4 - 2); // +/- 2 days variation
-        const period = periodLength + (Math.random() * 2 - 1); // +/- 1 day variation
+    // Constants for optimization
+    const firstDayTime = firstDayOfMonth.getTime();
+    const lastDayTime = lastDayOfMonth.getTime();
+    const dayMs = 24 * 60 * 60 * 1000;
 
-        // Find all periods that could overlap with the target month
-        let nextPeriodStart = new Date(lastPeriod);
-        let foundPeriodInMonth = false;
+    // Progressive simulation with UI updates
+    let completed = 0;
+    const batchSize = Math.min(1000, Math.max(100, Math.floor(simulations / 50))); // Adaptive batch size
 
-        // Look ahead to find periods that might affect this month
-        for (let cycles = 0; cycles < 12; cycles++) { // Check up to 12 cycles ahead
-            nextPeriodStart.setDate(nextPeriodStart.getDate() + cycle);
+    function runSimulationBatch() {
+        const batchEnd = Math.min(completed + batchSize, simulations);
+        
+        for (let i = completed; i < batchEnd; i++) {
+            // Add variation to cycle and period lengths
+            const cycle = cycleLength + (Math.random() * 4 - 2); // +/- 2 days variation
+            const period = periodLength + (Math.random() * 2 - 1); // +/- 1 day variation
 
-            const periodStart = new Date(nextPeriodStart);
-            const periodEnd = new Date(nextPeriodStart);
-            periodEnd.setDate(periodStart.getDate() + period - 1); // period length includes start day
+            // Find all periods that could overlap with the target month
+            let nextPeriodTime = lastPeriod.getTime();
+            let foundPeriodInMonth = false;
+            const cycleMs = cycle * dayMs;
+            const periodMs = (period - 1) * dayMs; // period length includes start day
 
-            // Check if this period overlaps with our target month
-            if (periodEnd >= firstDayOfMonth && periodStart <= lastDayOfMonth) {
-                foundPeriodInMonth = true;
+            // Look ahead to find periods that might affect this month
+            for (let cycles = 0; cycles < 12; cycles++) { // Check up to 12 cycles ahead
+                nextPeriodTime += cycleMs;
+                const periodEndTime = nextPeriodTime + periodMs;
 
-                // Mark each day in the month that has period
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const checkDate = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), day);
-                    if (checkDate >= periodStart && checkDate <= periodEnd) {
+                // Check if this period overlaps with our target month
+                if (periodEndTime >= firstDayTime && nextPeriodTime <= lastDayTime) {
+                    foundPeriodInMonth = true;
+
+                    // Mark each day in the month that has period
+                    const periodStartDay = Math.max(1, Math.ceil((nextPeriodTime - firstDayTime) / dayMs) + 1);
+                    const periodEndDay = Math.min(daysInMonth, Math.floor((periodEndTime - firstDayTime) / dayMs) + 1);
+                    
+                    for (let day = periodStartDay; day <= periodEndDay; day++) {
                         dailyProbabilities[day - 1]++;
                     }
                 }
+
+                // Stop if we're well past the target month (90 days)
+                if (nextPeriodTime > lastDayTime && (nextPeriodTime - lastDayTime) > (90 * dayMs)) {
+                    break;
+                }
             }
 
-            // Stop if we're well past the target month
-            if (nextPeriodStart > lastDayOfMonth &&
-                (nextPeriodStart.getTime() - lastDayOfMonth.getTime()) > (90 * 24 * 60 * 60 * 1000)) {
-                break;
+            if (foundPeriodInMonth) {
+                anyPeriodInMonth++;
             }
         }
 
-        if (foundPeriodInMonth) {
-            anyPeriodInMonth++;
+        completed = batchEnd;
+
+        // Update progress
+        const progress = (completed / simulations) * 100;
+        progressFill.style.width = `${progress}%`;
+        progressText.textContent = `${completed.toLocaleString()} / ${simulations.toLocaleString()} simulations`;
+
+        // Continue or finish
+        if (completed < simulations) {
+            // Continue with next batch
+            setTimeout(runSimulationBatch, 1);
+        } else {
+            // Simulation complete - display results
+            finishCalculation();
         }
     }
 
-    // Convert counts to percentages
-    const dailyPercentages = dailyProbabilities.map(count => (count / simulations) * 100);
-    const monthlyChance = (anyPeriodInMonth / simulations) * 100;
+    function finishCalculation() {
+        // Convert counts to percentages
+        const dailyPercentages = dailyProbabilities.map(count => (count / simulations) * 100);
+        const monthlyChance = (anyPeriodInMonth / simulations) * 100;
 
-    // Find peak probability day
-    const maxProbability = Math.max(...dailyPercentages);
-    const peakDay = dailyPercentages.indexOf(maxProbability) + 1;
+        // Find peak probability day
+        const maxProbability = Math.max(...dailyPercentages);
+        const peakDay = dailyPercentages.indexOf(maxProbability) + 1;
 
-    // Display results
-    const monthName = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentMonthDate);
-    document.getElementById('result').innerHTML =
-        `<strong>${monthName}</strong><br>` +
-        `Chance of period: <strong>${monthlyChance.toFixed(1)}%</strong><br>` +
-        `Peak probability: Day ${peakDay} (${maxProbability.toFixed(1)}%)`;
+        // Display results
+        const monthName = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentMonthDate);
+        resultDiv.innerHTML =
+            `<strong>${monthName}</strong><br>` +
+            `Chance of period: <strong>${monthlyChance.toFixed(1)}%</strong><br>` +
+            `Peak probability: Day ${peakDay} (${maxProbability.toFixed(1)}%)`;
 
-    // Store data for resize redraw
-    lastCalculatedData = {
-        dailyPercentages: dailyPercentages,
-        daysInMonth: daysInMonth
-    };
+        // Store data for resize redraw
+        lastCalculatedData = {
+            dailyPercentages: dailyPercentages,
+            daysInMonth: daysInMonth
+        };
 
-    // Create calendar heat map
-    drawCalendarHeatmap(dailyPercentages, daysInMonth);
-        } finally {
-            // Restore button state
-            button.disabled = false;
-            button.textContent = originalText;
-        }
-    }, 10); // Small delay to allow UI update
+        // Create calendar heat map
+        drawCalendarHeatmap(dailyPercentages, daysInMonth);
+
+        // Reset UI
+        resetCalculationUI(button, originalText, progressContainer);
+    }
+
+    function resetCalculationUI(button, originalText, progressContainer) {
+        button.disabled = false;
+        button.textContent = originalText;
+        progressContainer.style.display = 'none';
+    }
+
+    // Start the simulation
+    setTimeout(runSimulationBatch, 10);
 }
 
 // Initialize blank calendar without probability data
@@ -176,14 +227,19 @@ function drawCalendarHeatmap(dailyPercentages, daysInMonth) {
     container.innerHTML = '';
 
     // Create calendar structure
-    const firstDayOfMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), 1);
-    const lastDayOfMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 0);
+    const year = currentMonthDate.getFullYear();
+    const month = currentMonthDate.getMonth();
+    const firstDayOfMonth = new Date(year, month, 1);
+    const lastDayOfMonth = new Date(year, month + 1, 0);
     const startDate = new Date(firstDayOfMonth);
     startDate.setDate(startDate.getDate() - firstDayOfMonth.getDay()); // Start from Sunday of first week
 
     const endDate = new Date(lastDayOfMonth);
     const daysToAdd = 6 - lastDayOfMonth.getDay(); // Add days to complete the last week
     endDate.setDate(endDate.getDate() + daysToAdd);
+
+    // Create document fragment for better performance
+    const fragment = document.createDocumentFragment();
 
     // Day headers
     const headers = document.createElement('div');
@@ -195,22 +251,32 @@ function drawCalendarHeatmap(dailyPercentages, daysInMonth) {
         header.textContent = day;
         headers.appendChild(header);
     });
-    container.appendChild(headers);
+    fragment.appendChild(headers);
 
     // Calendar grid
     const calendar = document.createElement('div');
     calendar.className = 'calendar-heatmap';
 
     const today = new Date();
+    const todayStr = today.toDateString();
     const currentDate = new Date(startDate);
+
+    // Pre-define color mapping for performance
+    const getColorForProbability = (probability) => {
+        if (probability === 0) return { bg: '#f9fafb', text: '#374151' };
+        if (probability <= 25) return { bg: '#fecaca', text: '#374151' };
+        if (probability <= 50) return { bg: '#f87171', text: '#ffffff' };
+        if (probability <= 75) return { bg: '#ef4444', text: '#ffffff' };
+        return { bg: '#dc2626', text: '#ffffff' };
+    };
 
     while (currentDate <= endDate) {
         const dayElement = document.createElement('div');
         dayElement.className = 'calendar-day';
 
         const dayOfMonth = currentDate.getDate();
-        const isCurrentMonth = currentDate.getMonth() === currentMonthDate.getMonth();
-        const isToday = currentDate.toDateString() === today.toDateString();
+        const isCurrentMonth = currentDate.getMonth() === month;
+        const isToday = currentDate.toDateString() === todayStr;
 
         dayElement.textContent = dayOfMonth;
 
@@ -225,28 +291,10 @@ function drawCalendarHeatmap(dailyPercentages, daysInMonth) {
         // Add probability styling for current month days
         if (isCurrentMonth && dailyPercentages && dailyPercentages.length > 0) {
             const probability = dailyPercentages[dayOfMonth - 1] || 0;
+            const colors = getColorForProbability(probability);
 
-            // Determine color based on probability ranges
-            let backgroundColor, textColor;
-            if (probability === 0) {
-                backgroundColor = '#f9fafb'; // Very light gray
-                textColor = '#374151';
-            } else if (probability <= 25) {
-                backgroundColor = '#fecaca'; // Light red
-                textColor = '#374151';
-            } else if (probability <= 50) {
-                backgroundColor = '#f87171'; // Medium-light red
-                textColor = '#ffffff';
-            } else if (probability <= 75) {
-                backgroundColor = '#ef4444'; // Medium red
-                textColor = '#ffffff';
-            } else {
-                backgroundColor = '#dc2626'; // Dark red
-                textColor = '#ffffff';
-            }
-
-            dayElement.style.backgroundColor = backgroundColor;
-            dayElement.style.color = textColor;
+            dayElement.style.backgroundColor = colors.bg;
+            dayElement.style.color = colors.text;
 
             // Add tooltip
             const tooltip = document.createElement('div');
@@ -259,13 +307,13 @@ function drawCalendarHeatmap(dailyPercentages, daysInMonth) {
         currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    container.appendChild(calendar);
+    fragment.appendChild(calendar);
 
     // Add legend only when there's probability data
     if (dailyPercentages && dailyPercentages.length > 0) {
         const legend = document.createElement('div');
         legend.className = 'calendar-legend';
-        
+
         const legendItems = [
             { color: '#f9fafb', label: '0%' },
             { color: '#fecaca', label: '1-25%' },
@@ -277,22 +325,27 @@ function drawCalendarHeatmap(dailyPercentages, daysInMonth) {
         legendItems.forEach(item => {
             const legendItem = document.createElement('div');
             legendItem.className = 'legend-item';
-            
+
             const colorBox = document.createElement('div');
             colorBox.className = 'legend-color';
             colorBox.style.backgroundColor = item.color;
-            
+
             const label = document.createElement('span');
             label.textContent = item.label;
-            
+
             legendItem.appendChild(colorBox);
             legendItem.appendChild(label);
             legend.appendChild(legendItem);
         });
 
-        container.appendChild(legend);
+        fragment.appendChild(legend);
     }
-}// Clear calendar when needed
+
+    // Single DOM update for better performance
+    container.appendChild(fragment);
+}
+
+// Clear calendar when needed
 function clearChart() {
     const container = document.getElementById('calendarHeatmap');
     if (container) {

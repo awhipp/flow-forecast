@@ -34,9 +34,10 @@ The app uses an advanced Monte Carlo simulation to estimate monthly probabilitie
 
 ## Technology
 
-- HTML, CSS (modern, responsive design)
-- JavaScript (Monte Carlo simulation)
+- HTML, CSS (modern, responsive design with optimized transitions)
+- JavaScript (Optimized Monte Carlo simulation using timestamp calculations)
 - Pure CSS and DOM manipulation for calendar heat map visualization (no external dependencies)
+- Performance optimizations: DOM fragments, debounced resize handlers, and efficient memory management
 
 ---
 **Disclaimer:** This tool provides estimates for informational purposes only and should not be used for medical decision-making.

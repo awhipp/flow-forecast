@@ -1,577 +1,77 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
+
 <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Flow Forecast - Monthly Period Prediction</title>
-      <style>
-            body {
-                  font-family: 'Segoe UI', Arial, sans-serif;
-                  background: linear-gradient(135deg, #f8fafc 0%, #e0e7ef 100%);
-                  min-height: 100vh;
-                  margin: 0;
-                  padding: 0;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-            }
-            .container {
-                  background: #fff;
-                  border-radius: 18px;
-                  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-                  padding: 2.5rem 2rem 2rem 2rem;
-                  max-width: 500px;
-                  width: 100%;
-                  margin: 2rem 1rem;
-            }
-            h1 {
-                  text-align: center;
-                  color: #2d3748;
-                  margin-bottom: 0.5rem;
-            }
-            sub {
-                  display: block;
-                  text-align: center;
-                  color: #4a5568;
-                  font-weight: 600;
-                  margin-bottom: 1.5rem;
-            }
-            hr {
-                  margin-bottom: 1.5rem;
-            }
-            label {
-                  margin-top: 1rem;
-                  color: #4a5568;
-                  font-weight: 500;
-            }
-            input[type="date"], input[type="number"] {
-                  width: 100%;
-                  padding: 0.6rem;
-                  border: 1px solid #cbd5e1;
-                  border-radius: 8px;
-                  margin-top: 0.3rem;
-                  font-size: 1rem;
-                  background: #f7fafc;
-                  box-sizing: border-box;
-            }
-            button {
-                  width: 100%;
-                  padding: 0.8rem;
-                  background: #2563eb;
-                  color: #fff;
-                  border: none;
-                  border-radius: 8px;
-                  font-size: 1.1rem;
-                  font-weight: 600;
-                  margin-top: 1.5rem;
-                  cursor: pointer;
-                  transition: background 0.2s;
-            }
-            button:hover {
-                  background: #1e40af;
-            }
-            .result {
-                  margin-top: 1.5rem;
-                  font-weight: bold;
-                  text-align: center;
-                  color: #2563eb;
-                  font-size: 1.2rem;
-            }
-            .chart-container {
-                  margin-top: 2.5rem;
-                  background: #f1f5f9;
-                  border-radius: 12px;
-                  padding: 1.2rem 0.8rem 0.5rem 0.8rem;
-                  overflow-x: auto;
-            }
-            .month-navigation {
-                  display: flex;
-                  align-items: center;
-                  justify-content: space-between;
-                  margin: 1.5rem 0;
-                  padding: 1rem;
-                  background: #f8fafc;
-                  border-radius: 12px;
-                  border: 1px solid #e2e8f0;
-            }
-            .month-navigation h3 {
-                  margin: 0;
-                  color: #2d3748;
-                  font-size: 1.1rem;
-                  font-weight: 600;
-            }
-            .month-navigation button {
-                  background: #ffffff;
-                  border: 1px solid #cbd5e1;
-                  border-radius: 8px;
-                  padding: 0.5rem 1rem;
-                  font-size: 0.9rem;
-                  color: #4a5568;
-                  cursor: pointer;
-                  transition: all 0.2s;
-                  width: auto;
-                  margin: 0;
-            }
-            .month-navigation button:hover {
-                  background: #f1f5f9;
-                  border-color: #94a3b8;
-            }
-            /* Mobile devices (≤480px) */
-            @media (max-width: 480px) {
-                  body {
-                        padding: 0.5rem;
-                  }
-                  .container {
-                        padding: 1rem 0.75rem;
-                        margin: 0.5rem;
-                        max-width: none;
-                        border-radius: 12px;
-                  }
-                  h1 {
-                        font-size: 1.5rem;
-                        margin-bottom: 0.25rem;
-                  }
-                  sub {
-                        font-size: 0.85rem;
-                        margin-bottom: 1rem;
-                  }
-                  label {
-                        font-size: 0.9rem;
-                        margin-top: 0.75rem;
-                  }
-                  input[type="date"], input[type="number"] {
-                        padding: 0.5rem;
-                        font-size: 0.9rem;
-                  }
-                  button {
-                        padding: 0.7rem;
-                        font-size: 1rem;
-                        margin-top: 1rem;
-                        min-height: 44px; /* Minimum touch target size */
-                  }
-                  .month-navigation {
-                        padding: 0.75rem;
-                        margin: 1rem 0;
-                        flex-direction: column;
-                        gap: 0.5rem;
-                  }
-                  .month-navigation h3 {
-                        font-size: 1rem;
-                        margin-bottom: 0.5rem;
-                  }
-                  .month-navigation button {
-                        padding: 0.5rem 1rem;
-                        font-size: 0.85rem;
-                        width: 100%;
-                        margin: 0;
-                        min-height: 44px; /* Minimum touch target size */
-                  }
-                  .month-navigation .nav-buttons {
-                        display: flex;
-                        gap: 0.5rem;
-                  }
-                  .result {
-                        font-size: 1rem;
-                        line-height: 1.4;
-                        margin-top: 1rem;
-                  }
-                  .chart-container {
-                        margin-top: 1.5rem;
-                        padding: 0.75rem 0.5rem;
-                  }
-                  #bellCurve {
-                        min-height: 180px;
-                  }
-            }
-
-            /* Large mobile devices (481px-768px) */
-            @media (min-width: 481px) and (max-width: 768px) {
-                  .container {
-                        padding: 1.5rem 1rem;
-                        max-width: 450px;
-                  }
-                  .month-navigation {
-                        padding: 0.9rem;
-                  }
-                  .month-navigation h3 {
-                        font-size: 1.05rem;
-                  }
-                  .month-navigation button {
-                        padding: 0.45rem 0.9rem;
-                        font-size: 0.9rem;
-                  }
-                  .chart-container {
-                        padding: 1rem 0.6rem;
-                  }
-            }
-
-            /* Tablet devices (769px-1024px) */
-            @media (min-width: 769px) and (max-width: 1024px) {
-                  .container {
-                        max-width: 600px;
-                        padding: 2rem 1.5rem;
-                  }
-                  .chart-container {
-                        padding: 1.5rem 1rem;
-                  }
-            }
-
-            /* Large desktop devices (≥1025px) */
-            @media (min-width: 1025px) {
-                  .container {
-                        max-width: 650px;
-                        padding: 3rem 2.5rem;
-                  }
-                  .chart-container {
-                        padding: 2rem 1.5rem;
-                  }
-                  #bellCurve {
-                        min-height: 250px;
-                  }
-            }
-      </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flow Forecast - Monthly Period Prediction</title>
 </head>
+
 <body>
-      <div class="container">
+    <div class="container">
+        <div class="header">
             <h1>Flow Forecast</h1>
             <sub>Monthly Period Probability Calculator</sub>
-
             <hr>
+        </div>
 
-            <div>
-                  <label for="lastPeriod">Last Period Start Date:</label>
-                  <input type="date" id="lastPeriod">
-                  
-                  <label for="cycleLength">Average Cycle Length (days):</label>
-                  <input type="number" id="cycleLength" value="28">
-                  
-                  <label for="periodLength">Average Period Length (days):</label>
-                  <input type="number" id="periodLength" value="5">
-                  
-                  <div class="month-navigation">
-                        <h3 id="currentMonth">January 2024</h3>
-                        <div class="nav-buttons">
-                              <button id="prevMonth" onclick="changeMonth(-1)">◀ Previous</button>
-                              <button id="nextMonth" onclick="changeMonth(1)">Next ▶</button>
-                        </div>
-                  </div>
-                  
-                  <button onclick="calculateMonthProbability()">Calculate Monthly Forecast</button>
-                  
-                  <div class="result" id="result"></div>
-                  <div class="chart-container">
-                        <canvas id="bellCurve" height="200"></canvas>
-                  </div>
+        <div class="main-content">
+            <div class="form-section">
+
+                <div class="functionality-descriptor">
+                    <p>This tool uses Monte Carlo simulation to predict period probabilities.
+                        Enter your cycle data below and navigate to future months to see forecasts. <em>Note:
+                            Predictions
+                            become less accurate for months further from today due to natural cycle variation.</em></p>
+                </div>
+                <label for="lastPeriod">Last Period Start Date:</label>
+                <input type="date" id="lastPeriod">
+
+                <label for="cycleLength">Average Cycle Length (days):</label>
+                <input type="number" id="cycleLength" value="28">
+
+                <label for="periodLength">Average Period Length (days):</label>
+                <input type="number" id="periodLength" value="5">
+
+                <label for="simulations">Number of Simulations:</label>
+                <input type="number" id="simulations" value="10000" min="1000" max="1000000">
+
+
+                <button onclick="calculateMonthProbability()">Calculate Monthly Forecast</button>
+
+                <div class="result" id="result"></div>
             </div>
-      </div>
-      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-      <script>
-            // Global variables
-            let currentMonthDate = new Date();
-            let chart;
-            let lastCalculatedData = null; // Store last calculation for resize redraw
 
-            // Set default values and initialize month navigation
-            window.addEventListener('DOMContentLoaded', () => {
-                  const today = new Date();
-                  const pad = n => n.toString().padStart(2, '0');
-                  const yyyy = today.getFullYear();
-                  const mm = pad(today.getMonth() + 1);
-                  const dd = pad(today.getDate());
-                  const todayStr = `${yyyy}-${mm}-${dd}`;
+            <div class="calendar-section">
+                <div class="month-navigation">
+                    <h3 id="currentMonth">January 2024</h3>
+                    <div class="nav-buttons">
+                        <button id="prevMonth" onclick="changeMonth(-1)">◀ Previous</button>
+                        <button id="nextMonth" onclick="changeMonth(1)">Next ▶</button>
+                    </div>
+                </div>
+                <div class="calendar-container">
+                    <div id="calendarHeatmap"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                  document.getElementById('lastPeriod').value = todayStr;
-                  
-                  // Set current month to next month
-                  currentMonthDate.setMonth(currentMonthDate.getMonth() + 1);
-                  updateMonthDisplay();
-            });
+    <footer class="footer">
+        <div class="footer-content">
+            <p>
+                <a href="https://github.com/awhipp/flow-forecast" target="_blank" rel="noopener noreferrer">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    View on GitHub
+                </a>
+            </p>
+        </div>
+    </footer>
 
-            // Handle window resize to redraw chart responsively
-            window.addEventListener('resize', () => {
-                  if (lastCalculatedData) {
-                        // Small delay to ensure layout has updated
-                        setTimeout(() => {
-                              drawMonthlyChart(lastCalculatedData.dailyPercentages, lastCalculatedData.daysInMonth);
-                        }, 100);
-                  }
-            });
+    <script src="index.js"></script>
+    <link rel="stylesheet" href="index.css">
+</body>
 
-            // Update the month display
-            function updateMonthDisplay() {
-                  const monthNames = ["January", "February", "March", "April", "May", "June",
-                        "July", "August", "September", "October", "November", "December"];
-                  const monthDisplay = `${monthNames[currentMonthDate.getMonth()]} ${currentMonthDate.getFullYear()}`;
-                  document.getElementById('currentMonth').textContent = monthDisplay;
-            }
-
-            // Change month (direction: -1 for previous, +1 for next)
-            function changeMonth(direction) {
-                  currentMonthDate.setMonth(currentMonthDate.getMonth() + direction);
-                  updateMonthDisplay();
-                  
-                  // Auto-calculate if we have valid inputs
-                  const lastPeriod = document.getElementById('lastPeriod').value;
-                  const cycleLength = document.getElementById('cycleLength').value;
-                  const periodLength = document.getElementById('periodLength').value;
-                  
-                  if (lastPeriod && cycleLength && periodLength) {
-                        calculateMonthProbability();
-                  }
-            }
-
-            // Main calculation function for monthly forecast
-            function calculateMonthProbability() {
-                  const lastPeriod = new Date(document.getElementById('lastPeriod').value);
-                  const cycleLength = parseInt(document.getElementById('cycleLength').value);
-                  const periodLength = parseInt(document.getElementById('periodLength').value);
-                  
-                  if (!lastPeriod || isNaN(cycleLength) || isNaN(periodLength)) {
-                        document.getElementById('result').textContent = "Please fill all inputs correctly.";
-                        clearChart();
-                        return;
-                  }
-                  
-                  // Get the first and last day of the current viewing month
-                  const firstDayOfMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), 1);
-                  const lastDayOfMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 0);
-                  const daysInMonth = lastDayOfMonth.getDate();
-                  
-                  // Monte Carlo simulation
-                  const simulations = 100000;
-                  const dailyProbabilities = Array(daysInMonth).fill(0);
-                  let anyPeriodInMonth = 0;
-                  
-                  for (let i = 0; i < simulations; i++) {
-                        // Add variation to cycle and period lengths
-                        const cycle = cycleLength + (Math.random() * 4 - 2); // +/- 2 days variation
-                        const period = periodLength + (Math.random() * 2 - 1); // +/- 1 day variation
-                        
-                        // Find all periods that could overlap with the target month
-                        let nextPeriodStart = new Date(lastPeriod);
-                        let foundPeriodInMonth = false;
-                        
-                        // Look ahead to find periods that might affect this month
-                        for (let cycles = 0; cycles < 12; cycles++) { // Check up to 12 cycles ahead
-                              nextPeriodStart.setDate(nextPeriodStart.getDate() + cycle);
-                              
-                              const periodStart = new Date(nextPeriodStart);
-                              const periodEnd = new Date(nextPeriodStart);
-                              periodEnd.setDate(periodStart.getDate() + period - 1); // period length includes start day
-                              
-                              // Check if this period overlaps with our target month
-                              if (periodEnd >= firstDayOfMonth && periodStart <= lastDayOfMonth) {
-                                    foundPeriodInMonth = true;
-                                    
-                                    // Mark each day in the month that has period
-                                    for (let day = 1; day <= daysInMonth; day++) {
-                                          const checkDate = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), day);
-                                          if (checkDate >= periodStart && checkDate <= periodEnd) {
-                                                dailyProbabilities[day - 1]++;
-                                          }
-                                    }
-                              }
-                              
-                              // Stop if we're well past the target month
-                              if (nextPeriodStart > lastDayOfMonth && 
-                                  (nextPeriodStart.getTime() - lastDayOfMonth.getTime()) > (90 * 24 * 60 * 60 * 1000)) {
-                                    break;
-                              }
-                        }
-                        
-                        if (foundPeriodInMonth) {
-                              anyPeriodInMonth++;
-                        }
-                  }
-                  
-                  // Convert counts to percentages
-                  const dailyPercentages = dailyProbabilities.map(count => (count / simulations) * 100);
-                  const monthlyChance = (anyPeriodInMonth / simulations) * 100;
-                  
-                  // Find peak probability day
-                  const maxProbability = Math.max(...dailyPercentages);
-                  const peakDay = dailyPercentages.indexOf(maxProbability) + 1;
-                  
-                  // Display results
-                  const monthName = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentMonthDate);
-                  document.getElementById('result').innerHTML = 
-                        `<strong>${monthName}</strong><br>` +
-                        `Chance of period: <strong>${monthlyChance.toFixed(1)}%</strong><br>` +
-                        `Peak probability: Day ${peakDay} (${maxProbability.toFixed(1)}%)`;
-                  
-                  // Store data for resize redraw
-                  lastCalculatedData = {
-                        dailyPercentages: dailyPercentages,
-                        daysInMonth: daysInMonth
-                  };
-                  
-                  // Create bell curve chart
-                  drawMonthlyChart(dailyPercentages, daysInMonth);
-            }
-
-            // Draw the monthly probability chart using native Canvas
-            function drawMonthlyChart(dailyPercentages, daysInMonth) {
-                  const canvas = document.getElementById('bellCurve');
-                  const ctx = canvas.getContext('2d');
-                  
-                  // Set canvas size
-                  const rect = canvas.getBoundingClientRect();
-                  const screenWidth = window.innerWidth;
-                  
-                  // Responsive height based on screen size
-                  let canvasHeight = 200;
-                  if (screenWidth <= 480) {
-                        canvasHeight = 180;
-                  } else if (screenWidth >= 1025) {
-                        canvasHeight = 250;
-                  }
-                  
-                  canvas.width = rect.width * window.devicePixelRatio;
-                  canvas.height = canvasHeight * window.devicePixelRatio;
-                  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-                  
-                  // Responsive chart dimensions
-                  let padding = 40;
-                  if (screenWidth <= 480) {
-                        padding = 30;
-                  } else if (screenWidth <= 768) {
-                        padding = 35;
-                  }
-                  
-                  const chartWidth = rect.width - padding * 2;
-                  const chartHeight = canvasHeight - padding * 2;
-                  
-                  // Clear canvas
-                  ctx.clearRect(0, 0, rect.width, canvasHeight);
-                  
-                  // Find max value for scaling
-                  const maxValue = Math.max(...dailyPercentages, 10); // minimum 10% for scaling
-                  
-                  // Draw grid lines
-                  ctx.strokeStyle = '#e5e7eb';
-                  ctx.lineWidth = 1;
-                  for (let i = 0; i <= 5; i++) {
-                        const y = padding + (chartHeight * i / 5);
-                        ctx.beginPath();
-                        ctx.moveTo(padding, y);
-                        ctx.lineTo(padding + chartWidth, y);
-                        ctx.stroke();
-                  }
-                  
-                  // Draw axes
-                  ctx.strokeStyle = '#374151';
-                  ctx.lineWidth = 2;
-                  ctx.beginPath();
-                  ctx.moveTo(padding, padding);
-                  ctx.lineTo(padding, padding + chartHeight);
-                  ctx.lineTo(padding + chartWidth, padding + chartHeight);
-                  ctx.stroke();
-                  
-                  // Draw data line
-                  ctx.strokeStyle = '#2563eb';
-                  ctx.fillStyle = 'rgba(37,99,235,0.1)';
-                  ctx.lineWidth = 2;
-                  
-                  if (dailyPercentages.length > 0) {
-                        ctx.beginPath();
-                        
-                        // Create the line path
-                        for (let i = 0; i < dailyPercentages.length; i++) {
-                              const x = padding + (chartWidth * i / (dailyPercentages.length - 1));
-                              const y = padding + chartHeight - (chartHeight * dailyPercentages[i] / maxValue);
-                              
-                              if (i === 0) {
-                                    ctx.moveTo(x, y);
-                              } else {
-                                    ctx.lineTo(x, y);
-                              }
-                        }
-                        
-                        // Fill under the curve
-                        ctx.lineTo(padding + chartWidth, padding + chartHeight);
-                        ctx.lineTo(padding, padding + chartHeight);
-                        ctx.closePath();
-                        ctx.fill();
-                        
-                        // Draw the line
-                        ctx.beginPath();
-                        for (let i = 0; i < dailyPercentages.length; i++) {
-                              const x = padding + (chartWidth * i / (dailyPercentages.length - 1));
-                              const y = padding + chartHeight - (chartHeight * dailyPercentages[i] / maxValue);
-                              
-                              if (i === 0) {
-                                    ctx.moveTo(x, y);
-                              } else {
-                                    ctx.lineTo(x, y);
-                              }
-                        }
-                        ctx.stroke();
-                  }
-                  
-                  // Responsive font sizes
-                  let labelFontSize = 12;
-                  let titleFontSize = 14;
-                  let axisTitleFontSize = 12;
-                  
-                  if (screenWidth <= 480) {
-                        labelFontSize = 10;
-                        titleFontSize = 12;
-                        axisTitleFontSize = 10;
-                  } else if (screenWidth <= 768) {
-                        labelFontSize = 11;
-                        titleFontSize = 13;
-                        axisTitleFontSize = 11;
-                  } else if (screenWidth >= 1025) {
-                        labelFontSize = 13;
-                        titleFontSize = 16;
-                        axisTitleFontSize = 13;
-                  }
-                  
-                  // Draw labels
-                  ctx.fillStyle = '#374151';
-                  ctx.font = `${labelFontSize}px Arial`;
-                  ctx.textAlign = 'center';
-                  
-                  // X-axis labels - responsive frequency
-                  let dayStep = screenWidth <= 480 ? 7 : 5; // Show fewer labels on mobile
-                  for (let day = 1; day <= daysInMonth; day += dayStep) {
-                        const x = padding + (chartWidth * (day - 1) / (daysInMonth - 1));
-                        ctx.fillText(day.toString(), x, padding + chartHeight + 20);
-                  }
-                  
-                  // Y-axis labels
-                  ctx.textAlign = 'right';
-                  for (let i = 0; i <= 5; i++) {
-                        const value = (maxValue * i / 5).toFixed(1);
-                        const y = padding + chartHeight - (chartHeight * i / 5) + 4;
-                        ctx.fillText(value + '%', padding - 10, y);
-                  }
-                  
-                  // Chart titles
-                  ctx.textAlign = 'center';
-                  ctx.font = `bold ${titleFontSize}px Arial`;
-                  ctx.fillText('Daily Period Probability', rect.width / 2, 20);
-                  
-                  ctx.font = `${labelFontSize}px Arial`;
-                  ctx.fillText('Day of Month', rect.width / 2, canvasHeight - 5);
-                  
-                  // Y-axis title (rotated) - only show on larger screens
-                  if (screenWidth > 480) {
-                        ctx.save();
-                        ctx.translate(15, canvasHeight / 2);
-                        ctx.rotate(-Math.PI / 2);
-                        ctx.font = `${axisTitleFontSize}px Arial`;
-                        ctx.fillText('Probability (%)', 0, 0);
-                        ctx.restore();
-                  }
-            }
-
-            // Clear chart when needed
-            function clearChart() {
-                  const canvas = document.getElementById('bellCurve');
-                  const ctx = canvas.getContext('2d');
-                  ctx.clearRect(0, 0, canvas.width, canvas.height);
-                  lastCalculatedData = null; // Clear stored data
-            }
-      </script>
-</script></body>
 </html>
